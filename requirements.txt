@@ -1,0 +1,24 @@
+# Griffe Hub - Dependências Python
+
+# Framework Web
+streamlit==1.32.0
+
+# Processamento de PDFs
+pdfplumber==0.11.0
+PyPDF2==3.0.1
+
+# Manipulação de Dados
+pandas==2.2.0
+openpyxl==3.1.2
+xlsxwriter==3.2.0
+
+# Automação Web (Selenium)
+selenium==4.18.0
+webdriver-manager==4.0.1
+
+# Utilitários
+python-dotenv==1.0.1
+
+# Opcional - Se precisar de API
+# fastapi==0.109.0
+# uvicorn==0.27.0

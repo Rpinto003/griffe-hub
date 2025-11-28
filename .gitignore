@@ -1,0 +1,13 @@
+venv/
+.env
+logs/
+backend_old/
+frontend_old/
+Griffe_Hub/
+
+__pycache__/
+*.pyc
+
+.vscode/
+.idea/
+.streamlit/secrets.toml
