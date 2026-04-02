@@ -128,8 +128,14 @@ def renderizar_pagina(
     zoom = _zoom_para_pagina(doc, page_idx)
     mat = fitz.Matrix(zoom, zoom)
     pix = doc[page_idx].get_pixmap(matrix=mat, alpha=False)
-    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+    # Converter para PNG antes de criar o PIL Image.
+    # Image.frombytes com dados raw do PyMuPDF cria uma imagem com decoder "raw"
+    # que é incompatível com st_canvas (Streamlit image_to_url).
+    # Passar por PNG garante uma imagem completamente carregada em memória.
+    png_bytes = pix.tobytes("png")
     doc.close()
+    img = Image.open(BytesIO(png_bytes))
+    img.load()  # forçar leitura completa na memória antes de retornar
     return img, zoom
 
 
