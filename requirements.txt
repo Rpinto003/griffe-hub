@@ -19,6 +19,10 @@ webdriver-manager==4.0.1
 # Utilitários
 python-dotenv==1.0.1
 
+pymupdf
+streamlit-drawable-canvas
+pillow
+
 # Opcional - Se precisar de API
 # fastapi==0.109.0
 # uvicorn==0.27.0
