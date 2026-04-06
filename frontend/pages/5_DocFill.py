@@ -75,9 +75,10 @@ _DEFAULTS = {
     "df_campos":      [],      # campos mapeados
     "df_page_idx":    0,       # página sendo visualizada (0-based)
     "df_img_key":     0,       # incrementado para forçar reset do componente de imagem
-    "df_active_col":  None,    # índice da coluna aguardando posicionamento
-    "df_font_size":   10,      # tamanho de fonte padrão
-    "df_field_width": 140,     # largura do campo em pixels canvas (controla quebra de texto)
+    "df_active_col":   None,    # índice da coluna aguardando posicionamento
+    "df_font_size":    10,      # tamanho de fonte padrão
+    "df_field_width":  140,     # largura do campo em pixels canvas (controla quebra de texto)
+    "df_field_height": 30,      # altura do campo em pixels canvas (limita linhas de texto)
 }
 
 for _k, _v in _DEFAULTS.items():
@@ -305,7 +306,7 @@ elif st.session_state.df_step == 2:
         st.caption("👉 Clique em uma **coluna** à direita para ativá-la, depois clique no PDF para posicioná-la")
 
     # ── CONTROLES DE PÁGINA, FONTE E LARGURA ────────────────────────────────
-    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([2, 1, 1, 2])
+    ctrl1, ctrl2, ctrl3, ctrl4, ctrl5 = st.columns([2, 1, 1, 1, 1])
 
     with ctrl1:
         if st.session_state.df_n_pages > 1:
@@ -345,6 +346,18 @@ elif st.session_state.df_step == 2:
         st.session_state.df_field_width = int(_field_width)
 
     with ctrl4:
+        _field_height = st.number_input(
+            "Altura (px)",
+            min_value=10,
+            max_value=500,
+            value=st.session_state.df_field_height,
+            step=5,
+            key="field_height_input",
+            help="Altura do campo em pixels. Texto que ultrapassar essa altura será cortado.",
+        )
+        st.session_state.df_field_height = int(_field_height)
+
+    with ctrl5:
         _n_campos = len(st.session_state.df_campos)
         if _n_campos:
             st.metric("Campos posicionados", _n_campos)
@@ -385,6 +398,7 @@ elif st.session_state.df_step == 2:
             _pdf_y = (_cy + _fs * 1.1) / _zoom
 
             _fw = st.session_state.df_field_width   # largura configurada pelo usuário
+            _fh = st.session_state.df_field_height  # altura configurada pelo usuário
             _novo_campo = {
                 "colIndex":      _col_idx,
                 "colName":       _col_nome,
@@ -394,8 +408,7 @@ elif st.session_state.df_step == 2:
                 "canvas_left":   max(0, _cx - 2),
                 "canvas_top":    max(0, _cy - _fs),
                 "canvas_width":  _fw,
-                # Altura generosa: permite até ~6 linhas de texto quebrado
-                "canvas_height": int(_fs * 6),
+                "canvas_height": _fh,
                 # Coordenadas PDF (mantidas para referência)
                 "pdf_x":         _pdf_x,
                 "pdf_y":         _pdf_y,
