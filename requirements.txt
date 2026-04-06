@@ -20,7 +20,7 @@ webdriver-manager==4.0.1
 python-dotenv==1.0.1
 
 pymupdf
-streamlit-drawable-canvas
+streamlit-image-coordinates
 pillow
 
 # Opcional - Se precisar de API
