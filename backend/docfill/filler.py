@@ -232,27 +232,53 @@ def preencher_pdf(
         if not valor.strip():
             continue
 
+        page      = doc[page_idx]
         font_size = campo.get("fontSize", 10)
 
-        # Coordenadas já em pontos PDF (pré-calculadas na tela)
-        pdf_x = campo["pdf_x"]
-        pdf_y = campo["pdf_y"]
+        # Recalcular zoom para converter coordenadas canvas → pontos PDF.
+        # Usa a mesma fórmula de renderizar_pagina para garantir consistência.
+        zoom = CANVAS_WIDTH / page.rect.width
 
-        page = doc[page_idx]
-        page.insert_text(
-            fitz.Point(pdf_x, pdf_y),
+        # Coordenadas canvas do retângulo do campo
+        cl = campo.get("canvas_left", 0)
+        ct = campo.get("canvas_top",  0)
+        cw = campo.get("canvas_width", 140)
+        # Altura generosa: permite até ~6 linhas de texto quebrado
+        ch = campo.get("canvas_height", font_size * 6)
+
+        # Retângulo em pontos PDF
+        rect = fitz.Rect(
+            cl / zoom,
+            ct / zoom,
+            (cl + cw) / zoom,
+            (ct + ch) / zoom,
+        )
+
+        # insert_textbox respeita os limites do retângulo:
+        #   - quebra o texto automaticamente ao atingir a largura
+        #   - para de desenhar ao atingir a altura (texto não vaza para fora)
+        # Retorna a quantidade de caracteres não inseridos (> 0 = texto cortado)
+        sobra = page.insert_textbox(
+            rect,
             valor,
             fontsize=font_size,
             color=(0, 0, 0),
+            align=0,           # 0 = alinhado à esquerda
         )
 
+        if sobra > 0:
+            logger.warning(
+                "Campo '%s': texto truncado (%d chars não couberam no rect)",
+                headers[col_idx] if col_idx < len(headers) else col_idx,
+                sobra,
+            )
+
         logger.debug(
-            "Campo '%s' → '%s' na pág. %d (%.1f, %.1f)",
+            "Campo '%s' → '%s' na pág. %d rect=(%.1f,%.1f,%.1f,%.1f)",
             headers[col_idx] if col_idx < len(headers) else col_idx,
             valor[:30],
             page_idx + 1,
-            pdf_x,
-            pdf_y,
+            rect.x0, rect.y0, rect.x1, rect.y1,
         )
 
     buf = BytesIO()
