@@ -77,6 +77,7 @@ _DEFAULTS = {
     "df_img_key":     0,       # incrementado para forçar reset do componente de imagem
     "df_active_col":  None,    # índice da coluna aguardando posicionamento
     "df_font_size":   10,      # tamanho de fonte padrão
+    "df_field_width": 140,     # largura do campo em pixels canvas (controla quebra de texto)
 }
 
 for _k, _v in _DEFAULTS.items():
@@ -303,8 +304,8 @@ elif st.session_state.df_step == 2:
     else:
         st.caption("👉 Clique em uma **coluna** à direita para ativá-la, depois clique no PDF para posicioná-la")
 
-    # ── CONTROLES DE PÁGINA E FONTE ─────────────────────────────────────────
-    ctrl1, ctrl2, ctrl3 = st.columns([2, 1, 3])
+    # ── CONTROLES DE PÁGINA, FONTE E LARGURA ────────────────────────────────
+    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([2, 1, 1, 2])
 
     with ctrl1:
         if st.session_state.df_n_pages > 1:
@@ -332,6 +333,18 @@ elif st.session_state.df_step == 2:
         st.session_state.df_font_size = int(_font_size)
 
     with ctrl3:
+        _field_width = st.number_input(
+            "Largura (px)",
+            min_value=40,
+            max_value=720,
+            value=st.session_state.df_field_width,
+            step=10,
+            key="field_width_input",
+            help="Largura do campo em pixels. Textos mais longos que a largura serão quebrados automaticamente.",
+        )
+        st.session_state.df_field_width = int(_field_width)
+
+    with ctrl4:
         _n_campos = len(st.session_state.df_campos)
         if _n_campos:
             st.metric("Campos posicionados", _n_campos)
@@ -371,16 +384,19 @@ elif st.session_state.df_step == 2:
             _pdf_x = _cx / _zoom
             _pdf_y = (_cy + _fs * 1.1) / _zoom
 
+            _fw = st.session_state.df_field_width   # largura configurada pelo usuário
             _novo_campo = {
                 "colIndex":      _col_idx,
                 "colName":       _col_nome,
                 "pageNum":       st.session_state.df_page_idx,
-                # Coordenadas canvas (para desenhar o retângulo na visualização)
+                # Coordenadas canvas — usadas tanto para visualização quanto para
+                # calcular o rect no filler.py (insert_textbox respeita esses limites)
                 "canvas_left":   max(0, _cx - 2),
                 "canvas_top":    max(0, _cy - _fs),
-                "canvas_width":  140,
-                "canvas_height": int(_fs * 2),
-                # Coordenadas PDF (para inserção do texto via PyMuPDF)
+                "canvas_width":  _fw,
+                # Altura generosa: permite até ~6 linhas de texto quebrado
+                "canvas_height": int(_fs * 6),
+                # Coordenadas PDF (mantidas para referência)
                 "pdf_x":         _pdf_x,
                 "pdf_y":         _pdf_y,
                 "fontSize":      _fs,
