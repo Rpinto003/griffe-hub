@@ -348,6 +348,7 @@ def gerar_zip(
     rows: List[List[str]],
     headers: List[str],
     progress_callback=None,
+    nome_pattern: str = "",
 ) -> Tuple[bytes, int, int]:
     """
     Gera um arquivo ZIP com um PDF preenchido por linha da planilha.
@@ -358,6 +359,9 @@ def gerar_zip(
         rows:              Todas as linhas de dados
         headers:           Nomes das colunas
         progress_callback: Função opcional f(idx, total, nome) para atualizar progresso
+        nome_pattern:      Padrão para nomear cada PDF, ex: "Carta {Nome do Aluno}".
+                           Referências {NomeDaColuna} são substituídas pelos valores
+                           da linha. Se vazio, usa a primeira coluna como nome.
 
     Returns:
         (zip_bytes, total_ok, total_erros)
@@ -368,7 +372,11 @@ def gerar_zip(
 
     with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for i, row in enumerate(rows):
-            nome_base = _sanitize(str(row[0])) if row else f"documento_{i + 1}"
+            # Resolver nome do arquivo para esta linha
+            if nome_pattern:
+                nome_base = _gerar_nome_arquivo(nome_pattern, row, headers, i)
+            else:
+                nome_base = _sanitize(str(row[0])) if row else f"documento_{i + 1}"
 
             if progress_callback:
                 progress_callback(i, len(rows), nome_base)
@@ -392,3 +400,32 @@ def gerar_zip(
 def _sanitize(s: str) -> str:
     """Remove caracteres inválidos para nomes de arquivo."""
     return re.sub(r'[\/\\?%*:|"<>]', "_", s)[:80].strip()
+
+
+def _gerar_nome_arquivo(
+    pattern: str,
+    row: List[str],
+    headers: List[str],
+    idx: int,
+) -> str:
+    """
+    Resolve um padrão de nome de arquivo substituindo {NomeColuna} pelos valores da linha.
+
+    Exemplo:
+        pattern  = "Carta {Nome do Aluno}"
+        headers  = ["Nome do Aluno", "Turma"]
+        row      = ["João Silva", "3A"]
+        → retorna "Carta João Silva"
+
+    Qualquer coluna pode ser referenciada com {NomeExatoDaColunaNoHeader}.
+    Se o resultado final ficar vazio, usa "documento_<idx+1>" como fallback.
+    """
+    nome = pattern
+    for i, header in enumerate(headers):
+        valor = row[i] if i < len(row) else ""
+        nome = nome.replace(f"{{{header}}}", valor)
+    # Remover espaços extras e aplicar sanitização
+    nome = nome.strip()
+    if not nome:
+        nome = f"documento_{idx + 1}"
+    return _sanitize(nome)
