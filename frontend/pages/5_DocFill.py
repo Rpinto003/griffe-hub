@@ -79,6 +79,8 @@ _DEFAULTS = {
     "df_font_size":    10,      # tamanho de fonte padrão
     "df_field_width":  140,     # largura do campo em pixels canvas (controla quebra de texto)
     "df_field_height": 30,      # altura do campo em pixels canvas (limita linhas de texto)
+    "df_nome_prefixo": "",      # prefixo do nome do arquivo gerado (ex: "Carta")
+    "df_nome_col_idx": -1,      # índice da coluna usada no nome (-1 = usar 1ª coluna)
 }
 
 for _k, _v in _DEFAULTS.items():
@@ -508,6 +510,72 @@ elif st.session_state.df_step == 3:
 
     st.markdown("---")
 
+    # ── CONFIGURAÇÃO DO NOME DOS ARQUIVOS ────────────────────────────────────
+    st.markdown("### 📝 Nome dos Arquivos Gerados")
+    st.caption(
+        "Defina como cada PDF será nomeado no ZIP. "
+        "Você pode combinar um prefixo fixo com o valor de uma coluna da planilha."
+    )
+
+    _nc1, _nc2, _nc3 = st.columns([2, 2, 3])
+
+    with _nc1:
+        _nome_prefixo = st.text_input(
+            "Prefixo (texto fixo)",
+            value=st.session_state.df_nome_prefixo,
+            placeholder="Ex: Carta, Certificado…",
+            key="nome_prefixo_input",
+            help="Texto que aparece antes do valor da coluna. Pode ficar em branco.",
+        )
+        st.session_state.df_nome_prefixo = _nome_prefixo.strip()
+
+    with _nc2:
+        _opcoes_colunas = ["(usar 1ª coluna da planilha)"] + st.session_state.df_headers
+        _col_idx_ui = st.session_state.df_nome_col_idx + 1  # deslocado p/ incluir opção 0
+        _col_idx_ui = max(0, min(_col_idx_ui, len(_opcoes_colunas) - 1))
+
+        _sel = st.selectbox(
+            "Coluna para o nome",
+            options=list(range(len(_opcoes_colunas))),
+            format_func=lambda i: _opcoes_colunas[i],
+            index=_col_idx_ui,
+            key="nome_coluna_sel",
+            help="Qual coluna da planilha será usada para nomear cada PDF.",
+        )
+        st.session_state.df_nome_col_idx = _sel - 1  # -1 = usar 1ª coluna (padrão)
+
+    # Montar o padrão real que será passado ao backend
+    if st.session_state.df_nome_col_idx >= 0:
+        _col_escolhida = st.session_state.df_headers[st.session_state.df_nome_col_idx]
+        if st.session_state.df_nome_prefixo:
+            _nome_pattern = f"{st.session_state.df_nome_prefixo} {{{_col_escolhida}}}"
+        else:
+            _nome_pattern = f"{{{_col_escolhida}}}"
+    else:
+        # Fallback: usar a primeira coluna
+        _first_col = st.session_state.df_headers[0] if st.session_state.df_headers else ""
+        if st.session_state.df_nome_prefixo and _first_col:
+            _nome_pattern = f"{st.session_state.df_nome_prefixo} {{{_first_col}}}"
+        elif _first_col:
+            _nome_pattern = f"{{{_first_col}}}"
+        else:
+            _nome_pattern = st.session_state.df_nome_prefixo or "documento"
+
+    with _nc3:
+        # Preview usando a primeira linha da planilha
+        if st.session_state.df_rows:
+            _primeira_linha = st.session_state.df_rows[0]
+            _preview = _nome_pattern
+            for _hi, _hh in enumerate(st.session_state.df_headers):
+                _val = _primeira_linha[_hi] if _hi < len(_primeira_linha) else ""
+                _preview = _preview.replace(f"{{{_hh}}}", _val)
+            st.markdown("**Exemplo de nome:**")
+            st.info(f"📄 {_preview.strip()}.pdf")
+        else:
+            st.info(f"📄 Padrão: `{_nome_pattern}`")
+
+    st.markdown("---")
+
     if st.button("🚀 Gerar todos os PDFs", type="primary", use_container_width=True):
 
         _progress = st.progress(0)
@@ -524,6 +592,7 @@ elif st.session_state.df_step == 3:
                 rows              = st.session_state.df_rows,
                 headers           = st.session_state.df_headers,
                 progress_callback = _cb,
+                nome_pattern      = _nome_pattern,
             )
 
             _progress.progress(1.0)
