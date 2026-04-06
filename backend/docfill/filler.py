@@ -195,6 +195,53 @@ def renderizar_pagina_com_campos(
 
 
 # ============================================================================
+# QUEBRA DE TEXTO
+# ============================================================================
+
+_FONTNAME = "helv"   # Helvetica built-in — usado em insert_text e get_text_length
+
+
+def _quebrar_texto(
+    texto: str,
+    max_largura_pts: float,
+    font_size: float,
+) -> List[str]:
+    """
+    Quebra um texto em linhas que cabem dentro de max_largura_pts.
+
+    Usa fitz.get_text_length para medir cada fragmento com precisão,
+    evitando a imprecisão do insert_textbox com tabelas de métricas incompletas.
+
+    Palavras maiores que a largura máxima são inseridas na própria linha
+    (sem truncar o conteúdo, apenas sem garantia de não ultrapassar).
+    """
+    palavras = texto.split()
+    if not palavras:
+        return [texto]
+
+    linhas: List[str] = []
+    linha_atual: List[str] = []
+
+    for palavra in palavras:
+        candidato = " ".join(linha_atual + [palavra])
+        largura = fitz.get_text_length(
+            candidato, fontname=_FONTNAME, fontsize=font_size
+        )
+        if largura <= max_largura_pts:
+            linha_atual.append(palavra)
+        else:
+            if linha_atual:
+                linhas.append(" ".join(linha_atual))
+            # Palavra sozinha: insere mesmo se for mais larga que o campo
+            linha_atual = [palavra]
+
+    if linha_atual:
+        linhas.append(" ".join(linha_atual))
+
+    return linhas
+
+
+# ============================================================================
 # PREENCHIMENTO DE PDF
 # ============================================================================
 
@@ -207,8 +254,10 @@ def preencher_pdf(
     """
     Preenche um PDF template com os valores de UMA linha da planilha.
 
-    Os campos contêm coordenadas pré-convertidas para o sistema de
-    coordenadas do PyMuPDF (origem topo-esquerdo, eixo Y para baixo).
+    O texto é quebrado manualmente usando fitz.get_text_length para garantir
+    que cada linha caiba exatamente dentro da largura do campo definido pelo
+    usuário. Linhas que ultrapassam a altura do campo são silenciosamente
+    descartadas (o texto não vaza para fora do retângulo).
 
     Args:
         pdf_bytes: Bytes do PDF template (não é modificado)
@@ -243,42 +292,48 @@ def preencher_pdf(
         cl = campo.get("canvas_left", 0)
         ct = campo.get("canvas_top",  0)
         cw = campo.get("canvas_width", 140)
-        # Altura generosa: permite até ~6 linhas de texto quebrado
-        ch = campo.get("canvas_height", font_size * 6)
+        ch = campo.get("canvas_height", font_size * 4)
 
-        # Retângulo em pontos PDF
-        rect = fitz.Rect(
-            cl / zoom,
-            ct / zoom,
-            (cl + cw) / zoom,
-            (ct + ch) / zoom,
-        )
+        # Dimensões em pontos PDF
+        x0          = cl / zoom
+        y0          = ct / zoom
+        max_largura = cw / zoom   # largura máxima em pontos
+        max_altura  = ch / zoom   # altura máxima em pontos
 
-        # insert_textbox respeita os limites do retângulo:
-        #   - quebra o texto automaticamente ao atingir a largura
-        #   - para de desenhar ao atingir a altura (texto não vaza para fora)
-        # Retorna a quantidade de caracteres não inseridos (> 0 = texto cortado)
-        sobra = page.insert_textbox(
-            rect,
-            valor,
-            fontsize=font_size,
-            color=(0, 0, 0),
-            align=0,           # 0 = alinhado à esquerda
-        )
+        # Quebrar o texto em linhas que respeitam a largura do campo
+        linhas = _quebrar_texto(valor, max_largura, font_size)
 
-        if sobra > 0:
-            logger.warning(
-                "Campo '%s': texto truncado (%d chars não couberam no rect)",
-                headers[col_idx] if col_idx < len(headers) else col_idx,
-                sobra,
+        # Espaçamento entre linhas: 1.3× o tamanho da fonte
+        altura_linha = font_size * 1.3
+
+        # y do baseline da primeira linha (fonte começa ligeiramente abaixo do topo)
+        y_base = y0 + font_size
+
+        for i, linha in enumerate(linhas):
+            y = y_base + i * altura_linha
+            # Parar se o baseline ultrapassar a altura do campo
+            if y > y0 + max_altura:
+                logger.warning(
+                    "Campo '%s': %d linha(s) truncada(s) por exceder a altura do campo",
+                    headers[col_idx] if col_idx < len(headers) else col_idx,
+                    len(linhas) - i,
+                )
+                break
+            page.insert_text(
+                fitz.Point(x0, y),
+                linha,
+                fontname=_FONTNAME,
+                fontsize=font_size,
+                color=(0, 0, 0),
             )
 
         logger.debug(
-            "Campo '%s' → '%s' na pág. %d rect=(%.1f,%.1f,%.1f,%.1f)",
+            "Campo '%s' → '%s' | %d linha(s) | pág. %d | rect=(%.1f,%.1f,%.1f,%.1f)",
             headers[col_idx] if col_idx < len(headers) else col_idx,
             valor[:30],
+            len(linhas),
             page_idx + 1,
-            rect.x0, rect.y0, rect.x1, rect.y1,
+            x0, y0, x0 + max_largura, y0 + max_altura,
         )
 
     buf = BytesIO()
