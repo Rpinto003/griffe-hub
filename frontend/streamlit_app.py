@@ -42,6 +42,21 @@ col3, col4 = st.columns(2)
 
 with col3:
     st.markdown("### 🎓 Alocação de Alunos")
+
+col5, col6 = st.columns(2)
+
+with col5:
+    st.markdown("### ⚙️ Griffe Automações Google")
+    st.markdown("Acesso às automações internas criadas em Google Apps Script")
+    st.link_button(
+        "Abrir",
+        "https://script.google.com/a/macros/griffe-ie.com/s/AKfycbzFlET3Q4-F1wFhUAz4EVj1em7nAtJN2-bwAKpTrQ-qn2ltrhArhR9RI98UFt4yMtZHOQ/exec",
+        use_container_width=True,
+        type="primary"
+    )
+
+with col6:
+    st.empty()
     st.markdown("Algoritmo de Matching para Intercâmbio (Intake/Escola)")
     if st.button("Abrir", key="aloc", use_container_width=True, type="primary"):
         st.switch_page("pages/3_Alocacao_Alunos.py")
