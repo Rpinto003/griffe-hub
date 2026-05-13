@@ -63,7 +63,7 @@ with col5:
     st.markdown("Acesso às automações internas via Google Apps Script")
     st.link_button(
         "Abrir",
-        "https://script.google.com/a/macros/griffe-ie.com/s/AKfycbzFlET3Q4-F1wFhUAz4EVj1em7nAtJN2-bwAKpTrQ-qn2ltrhArhR9RI98UFt4yMtZHOQ/exec",
+        "https://script.google.com/a/macros/griffe-ie.com/s/AKfycbxCQGwJYn9D3JAUUlOb5UmXrwxyREAtGLM8LqkhSKUpUtzlh1H0yVJbF2CVJAE7U4CGqw/exec",
         use_container_width=True,
         type="primary"
     )
