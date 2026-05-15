@@ -72,4 +72,4 @@ with col6:
     st.markdown("### 📝 DocFill")
     st.markdown("Preenchimento automatizado de documentos")
     if st.button("Abrir", key="docfill", use_container_width=True, type="primary"):
-        st.switch_page("backend/docfill/filler.py")
+        st.switch_page("pages/5_DocFill.py")
