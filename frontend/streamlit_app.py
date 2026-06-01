@@ -27,10 +27,14 @@ st.markdown("---")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown("### 🛂 Sistema de Passaportes")
-    st.markdown("Processamento automatizado de solicitações de passaportes")
-    if st.button("Abrir", key="pass", use_container_width=True, type="primary"):
-        st.switch_page("pages/1_Passaportes.py")
+    st.markdown("### 💵 Sistema de Pagamentos")
+    st.markdown("Portal para solicitação de pagamentos")
+    st.link_button(
+        "Abrir",
+        "https://script.google.com/macros/s/AKfycbwG2I3snd9vvW5KYX6a0ur5N2IRORc_huEj1_GgxFuZGoo1gu2N87xZRCQFDwpVKHM6/exec",
+        use_container_width=True,
+        type="primary"
+    )
 
 with col2:
     st.markdown("### ✈️ Extrator de Faturas")
