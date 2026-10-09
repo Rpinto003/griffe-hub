@@ -30,7 +30,7 @@ with col1:
     st.markdown("Portal para solicitação de pagamentos")
     st.link_button(
         "Abrir",
-        "https://script.google.com/macros/s/AKfycbxZB_e81vx6ox5NivIJuibVsJ5PPXtJJiP52I6u7cWeAuoZ80x4_sH1LImlocJYs7Dc/exec",
+        "https://script.google.com/a/macros/griffe-ie.com/s/AKfycbxF8iCLn5aj9Zhr7KQrPavpXGf5n0EFYLBrORI5nevnFugePXdH7MINCtmwCV0hBe33CQ/exec",
         width="stretch",
         type="primary"
     )
